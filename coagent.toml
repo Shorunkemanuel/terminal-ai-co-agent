@@ -1,0 +1,235 @@
+# coagent.toml — Default configuration shipped with the project
+# Copy to ~/.config/coagent/config.toml or ./.coagent.toml to customize
+
+[general]
+# Default AI provider: "ollama", "openai", "anthropic", "llama_cpp", "vllm"
+default_provider = "ollama"
+# Single-model fallback mode (bypasses orchestration pipeline)
+single_model_mode = false
+# Project root (defaults to current directory)
+project_root = "."
+
+# ─── Multi-Model Pipeline ───────────────────────────────────────
+
+[orchestrator]
+# Enable multi-model orchestration pipeline
+enabled = true
+# Maximum context window budget for each model (in tokens)
+context_budget = 4096
+# Compression aggressiveness: "minimal" | "moderate" | "aggressive"
+compression = "moderate"
+
+[orchestrator.cache]
+# Enable pipeline result caching
+enabled = true
+# Cache directory
+directory = ".coagent/cache"
+# TTL for cached context summaries (seconds)
+ttl = 3600
+
+# ─── Model Definitions ──────────────────────────────────────────
+
+# Context Model: small, fast, reads & summarizes
+[models.context]
+provider = "ollama"
+model = "qwen2.5:0.5b"
+temperature = 0.0
+max_tokens = 2048
+# System prompt template for context extraction
+system_prompt = "You are a precise context extraction engine. Read the provided files and produce structured summaries. Do not generate code. Do not make recommendations. Only extract and summarize."
+
+# Reasoning Model: larger, plans & decides
+[models.reasoning]
+provider = "ollama"
+model = "qwen2.5:1.5b"
+temperature = 0.1
+max_tokens = 4096
+system_prompt = "You are an expert software engineer assistant. Analyze the provided structured context, produce clear plans, explain reasoning, identify risks, and generate precise code changes."
+
+# Verification Model: reviews & validates
+[models.verification]
+provider = "ollama"
+model = "qwen2.5:0.5b"
+temperature = 0.0
+max_tokens = 2048
+system_prompt = "You are a code reviewer. Check the proposed changes for correctness, consistency, security issues, and adherence to project conventions. Identify any potential problems."
+
+# Optional: single model used when single_model_mode = true
+[models.default]
+provider = "ollama"
+model = "qwen2.5:1.5b"
+temperature = 0.1
+max_tokens = 4096
+
+# ─── AI Provider Configuration ──────────────────────────────────
+
+[providers.ollama]
+base_url = "http://localhost:11434"
+timeout = 120
+retry_attempts = 3
+retry_delay = 1.0
+
+[providers.openai]
+api_key = "${OPENAI_API_KEY}"
+base_url = "https://api.openai.com/v1"
+timeout = 60
+retry_attempts = 3
+
+[providers.anthropic]
+api_key = "${ANTHROPIC_API_KEY}"
+base_url = "https://api.anthropic.com"
+timeout = 60
+retry_attempts = 3
+
+[providers.llama_cpp]
+model_path = "~/.cache/coagent/models"
+server_base_url = "http://localhost:8080"
+timeout = 120
+
+[providers.vllm]
+base_url = "http://localhost:8000"
+timeout = 120
+
+# ─── Safety ─────────────────────────────────────────────────────
+
+[safety]
+# Require explicit approval for: "all" | "dangerous" | "none"
+approval_mode = "dangerous"
+# Dangerous commands pattern list
+dangerous_commands = [
+    "rm -rf",
+    "git push --force",
+    "sudo",
+    "chmod 777",
+    "DROP TABLE",
+    "DELETE FROM",
+    "shutdown",
+    "reboot",
+]
+# Protected file patterns (never modify without explicit approval)
+protected_patterns = [
+    ".env",
+    ".env.*",
+    "*.key",
+    "*.pem",
+    "secrets.*",
+    "credentials.*",
+    ".gitignore",
+]
+# Enable automatic rollback on failure
+auto_rollback = true
+# Maximum rollback history entries
+rollback_history = 50
+
+# ─── Memory ─────────────────────────────────────────────────────
+
+[memory]
+# Backend: "file" | "sqlite" | "qdrant"
+backend = "sqlite"
+# Storage path
+path = ".coagent/memory"
+# Enable session memory (persists across restarts)
+session_persistence = true
+# Maximum project knowledge entries
+max_project_entries = 10000
+
+[memory.vector]
+# Embedding model for semantic memory
+embedding_model = "all-MiniLM-L6-v2"
+# Vector dimension
+dimension = 384
+
+# ─── RAG ────────────────────────────────────────────────────────
+
+[rag]
+enabled = true
+# Document collection paths
+document_paths = ["docs/", "*.md"]
+# Chunk size (characters)
+chunk_size = 1000
+# Chunk overlap
+chunk_overlap = 200
+# Embedding model
+embedding_model = "all-MiniLM-L6-v2"
+# Vector store backend
+vector_backend = "chromadb"
+# Vector store path
+vector_path = ".coagent/vectors"
+
+# ─── Git ────────────────────────────────────────────────────────
+
+[git]
+# Auto-commit before modifications
+auto_commit = false
+# Auto-create branches for changes
+auto_branch = true
+# Branch naming pattern
+branch_pattern = "coagent/{task_slug}-{timestamp}"
+# Signed commits
+sign_commits = false
+
+# ─── Logging ────────────────────────────────────────────────────
+
+[logging]
+# Log level: "DEBUG" | "INFO" | "WARNING" | "ERROR"
+level = "INFO"
+# Log directory
+directory = ".coagent/logs"
+# Enable audit trail
+audit = true
+# Enable JSON structured logging
+json_format = false
+# Enable metrics collection
+metrics = true
+
+# ─── Plugins ────────────────────────────────────────────────────
+
+[plugins]
+enabled = true
+# Plugin directories
+directories = [
+    "~/.config/coagent/plugins",
+    "./.coagent/plugins",
+]
+# Disabled plugins
+disabled = []
+
+# ─── Execution ──────────────────────────────────────────────────
+
+[execution]
+# Command timeout (seconds)
+command_timeout = 300
+# Maximum parallel file operations
+max_parallel_ops = 4
+# File operation dry-run mode
+dry_run = false
+# Preserve file permissions
+preserve_permissions = true
+# Respect .gitignore patterns
+respect_gitignore = true
+
+# ─── Documentation ──────────────────────────────────────────────
+
+[docs]
+# Documentation output format
+format = "markdown"
+# Output directory
+output_dir = "docs/generated"
+# Generate API docs
+api_docs = true
+# Generate architecture docs
+architecture_docs = true
+# Include diagrams (Mermaid)
+diagrams = true
+
+# ─── Testing ────────────────────────────────────────────────────
+
+[testing]
+# Test framework to generate for
+framework = "pytest"
+# Test directory
+test_dir = "tests"
+# Coverage target
+coverage_target = 0.8
+# Run tests after generating
+auto_run = false
